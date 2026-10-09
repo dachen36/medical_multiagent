@@ -1,0 +1,160 @@
+不对！我需要再看清楚整个项目的真实结构。让我重新扫描一遍。
+
+
+Get data from /repos/dachen36/medical_multiagent
+让我仔细看看这些目录的实际关系：
+
+
+Using results of get file and 5 other tool calls
+好问题！我现在看清楚了——这是一个"多项目混搭"的仓库结构。让我给你理一遍真实情况：
+
+🎯 项目结构三大块
+Code
+medical_multiagent/
+│
+├─ 第1块: 🔧 OpenHarness 基础框架 (被继承)
+│  ├─ src/openharness/        ← 通用 AI Agent 框架 (91.6KB代码)
+│  │  ├─ api/                 ← API层
+│  │  ├─ engine/              ← 执行引擎
+│  │  ├─ coordinator/         ← 编排器
+│  │  ├─ memory/              ← 记忆管理
+│  │  ├─ plugins/             ← 插件系统
+│  │  └─ cli.py               ← CLI 入口
+│  │
+│  └─ ohmo/                   ← OpenHarness 个人智能体实现 (轻量)
+│     ├─ cli.py               ← 命令行入口
+│     ├─ runtime.py           ← 运行时
+│     ├─ workspace.py         ← 工作区管理
+│     └─ gateway/             ← 网关服务
+│
+├─ 第2块: 🏥 医学诊疗业务系统 (核心)
+│  └─ webui/                  ← 医学多智能体系统
+│     ├─ server/              ← FastAPI 后端 (223KB)
+│     │  ├─ scenario_runner.py (61.6KB) ⭐⭐⭐ 核心编排
+│     │  ├─ coordinator_tools.py (29.7KB) - 多智能体协调
+│     │  ├─ intake_classifier.py (10.1KB) - 诊断分类
+│     │  ├─ intake_planner.py (9.8KB) - 诊疗规划
+│     │  ├─ stage_executors.py (22.5KB) - 执行器
+│     │  ├─ knowledge_api.py (20.1KB) - 医学知识库
+│     │  ├─ workflows.py (16.9KB) - 工作流
+│     │  └─ llm.py (6.9KB) - LLM 集成
+│     │
+│     └─ src/                 ← React 前端 (44KB)
+│        ├─ App.tsx           (36.6KB) 主应用
+│        └─ types.ts          (1.4KB)
+│
+└─ 第3块: 📋 测试/文档 (支撑)
+   ├─ tests/                  ← 大量测试用例
+   ├─ docs/                   ← 文档
+   ├─ README.md               ← 通用文档
+   ├─ CHANGELOG.md            ← 更新日志
+   └─ pyproject.toml          ← Python 项目配置
+❓ "所以 OpenHarness 和 ohmo 是多余的吗？"
+不是多余的，是基础架构！ 核心关系是：
+
+Code
+OpenHarness (通用 AI 编排框架)
+    ↑
+    └─── 被继承/依赖 ─────→ webui/server/ (医学诊疗系统)
+具体来说：
+
+1. OpenHarness (src/openharness/)
+定位: 通用的 AI 多智能体框架（类似 AutoGPT、Langchain 的角色）
+
+关键功能:
+
+engine/ - 智能体执行引擎
+coordinator/ - 多任务编排/协调
+memory/ - 对话记忆管理
+plugins/ - 插件系统（接入 Slack、Discord、Telegram 等）
+providers/ - LLM 提供商（Claude、GPT、etc）
+用途: 被医学诊疗系统所用，但项目里的 OpenHarness 是完整的全功能框架，不只是医学用
+
+2. ohmo (ohmo/)
+定位: OpenHarness 的个人智能体实现 (类似一个"缩小版个人助手")
+
+关键文件:
+
+Python
+ohmo/__init__.py      # "ohmo personal agent app built on top of OpenHarness"
+ohmo/cli.py          # 命令行入口 (从 pyproject.toml 行 52: "ohmo = 'ohmo.cli:app'")
+ohmo/runtime.py      # 运行时管理
+ohmo/workspace.py    # 工作区管理
+ohmo/gateway/        # 网关（多协议支持）
+用途: 可以单独作为个人 AI 助手使用（CLI 工具），但在这个医学项目里可能被集成或依赖
+
+3. webui/ (核心医学系统)
+定位: 真正的医学诊疗多智能体系统
+
+依赖关系:
+
+Python
+# 可能在 webui/server/app.py 中导入：
+from openharness.engine import ExecutionEngine  # 使用 OpenHarness 的执行引擎
+from openharness.coordinator import Coordinator  # 使用编排器
+# 或者直接用 ohmo 的功能
+from ohmo.runtime import OhmoRuntime
+业务逻辑: 医学诊疗（分类→规划→协调→执行）
+
+📊 pyproject.toml 揭示的真相
+TOML
+[project]
+name = "openharness-ai"          # ← 这是 OpenHarness 项目的打包名
+version = "0.1.9"
+description = "Open-source Python port of Claude Code"
+
+[project.scripts]
+openharness = "openharness.cli:app"  # ← 全功能框架 CLI
+oh = "openharness.cli:app"
+ohmo = "ohmo.cli:app"                # ← 个人助手 CLI
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openharness", "ohmo"]  # ← 打包这两个包
+结论: pyproject.toml 配置的是把 OpenHarness + ohmo 打包成一个 Python 包，而 webui/ 是这个框架的一个应用实例（医学诊疗系统）。
+
+🏗️ 真实的架构关系
+Code
+┌─────────────────────────────────────────────────────────────┐
+│                 医学多智能体诊疗系统                         │
+│                  (webui/server/)                            │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │ 应用层: scenario_runner.py (医学业务编排)            │   │
+│  │  - 分类 → 规划 → 协调 → 执行                         │   │
+│  └──────────────────────────────────────────────────────┘   │
+│            ↓ 使用                                            │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │ OpenHarness 框架层 (src/openharness/)                │   │
+│  │  - 执行引擎 (engine/)                                │   │
+│  │  - 编排器 (coordinator/)                             │   │
+│  │  - 记忆管理 (memory/)                                │   │
+│  │  - LLM 提供商 (providers/)                           │   │
+│  └──────────────────────────────────────────────────────┘   │
+│            ↓ 也可能使用                                      │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │ ohmo 个人助手 (ohmo/) - 可选/轻量层                  │   │
+│  │  - CLI 工具                                          │   │
+│  │  - 工作区管理                                        │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+✅ 总结
+组件	角色	是否必要	文件大小
+OpenHarness (src/)	通用 AI 框架	必要	~91.6KB
+ohmo/	个人助手实现	可选/轻量	~10KB
+webui/server/	医学诊疗系统	核心	~223KB
+webui/src/	前端 UI	必要	~44KB
+tests/	测试用例	支撑	~100KB+
+🎯 项目真实身份
+这是一个"多用途 AI 项目"：
+
+主要发布物: OpenHarness (通用 AI 框架) + ohmo (个人助手)
+
+可以独立安装和使用
+支持多种平台（Slack、Discord、Telegram 等）
+示范应用: webui/ (医学诊疗系统)
+
+展示 OpenHarness 如何用于实际业务
+完整的前端+后端系统
+所以不是"懒得整理的多余代码"，而是"框架 + 示范应用"的多层次设计。
+
+如果你要发布医学诊疗系统，应该考虑把它独立成一个 package，而不是混在 OpenHarness 项目里。
